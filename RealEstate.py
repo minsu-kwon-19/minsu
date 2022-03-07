@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import timeit
+import collections
+from dataclasses import dataclass
 
 #
 #   startStr부터 ~ endStr 사이의 문자열 반환
@@ -38,6 +40,13 @@ def getRes(url, headers):
     soup = BeautifulSoup(res.text, "lxml")
         
     return res
+
+# real estate info.
+class RealEstateInfo(NamedTuple):
+    name:str
+    spc1:float
+    spc2:float
+    priceInfo:str
 
 #
 #       Main
@@ -111,25 +120,43 @@ for val in mapArray:
                     aptJsonObject = json.loads(resApt.text)
                     aptArray = aptJsonObject['result']['list']
                     
+                    # 매매, 전세 데이터 저장 list
+                    myDealList = []
+                    myLeaseList = []
+                    
                     # APT 단지 매물 검색
                     for apts in aptArray:
                         #print(f"{apts['atclNm']}, {apts['tradTpNm']}, {apts['prcInfo']}")
                         
+                        
+                        
                         # 층수 "flrInfo":"11/15" "저/15", "고/15"
                         # 공급/전용 "spc1":"103.12","spc2":"84.7"
                         if apts['tradTpNm'] == "매매":
-                            print(f"{apts['atclNm']}, {apts['tradTpNm']}, {apts['prcInfo']}, {apts['flrInfo']}, {apts['spc2']}")
+                            myDealList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), f"{apts['prcInfo']}"))
                         elif apts['tradTpNm'] == "전세":
-                            print(f"{apts['atclNm']}, {apts['tradTpNm']}, {apts['prcInfo']}, {apts['flrInfo']}, {apts['spc2']}")
+                            myLeaseList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), f"{apts['prcInfo']}"))
                         
                         #
-                        # 전용면적을 기준으로, key를 구성하고 key에 해당하는 list가 존재. key_매매, key_전세
-                        # 구조체로
-                        # 단지이름, 전용면적, 매매or전세 이 세가지로 key를 가지며 구분,
+                        # 구조체로 단지이름, 전용면적, 매매or전세 이 세가지로 key를 가지며 구분,
                         # 엑셀 시트에 추가할 때 저 3가지면 고유값을 가질 수 있음.
                         # 해당 list에서 저층 제외로 sort. 매매가는 가장 낮은 가격 - 전세는 중간값으로
                         #
                         #
+                        """
+                        # real estate info.
+                            class RealEstateInfo(NamedTuple):
+                                name:str
+                                spc1:float
+                                spc2:float
+                                priceInfo:str
+                        """
+                        
+                        print(myDealList)
+                        
+                        
+                        
+                        
                         
                     
                         
