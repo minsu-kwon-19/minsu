@@ -64,7 +64,6 @@ def getPriceInfo(price):
         
     return int(result)
 
-
 #
 #    real estate struct
 #
@@ -79,7 +78,7 @@ class RealEstateInfo(NamedTuple):
 #
 #       Main
 #
-keyword = "송파구 가락동"
+keyword = "송파구 문정동"
 
 url = "https://m.land.naver.com/search/result/" + keyword
 headers = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"}
@@ -87,12 +86,6 @@ headers = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 resArea = getRes(url, headers)
 
 strResult = getStrBetweenAnB(resArea.text, "filter: {", "},")
-
-"""
-f = open("D:/newInfo.txt", 'w', encoding='utf-8')
-f.write(strResult)
-f.close()
-"""
 
 lat = getStrBetweenAnB(strResult, "lat: '","',")
 lon = getStrBetweenAnB(strResult, "lon: '","',")
@@ -116,12 +109,16 @@ for val in mapArray:
     print(f'{val["lgeo"]}, {val["lat"]}, {val["lon"]}, {val["count"]}')
     
     # 매물 url
-    ipage = int(int(val['count'])/20) + 2 # 20개씩으로 끊어짐.
+    # 20개 이상일땐 page 0부터시작
+    # 20개 이하일땐 page 1부터 시작
+    ipage = int(int(val['count'])/20) # 20개씩으로 끊어짐.
+    if int(int(val['count'])/20) is 0:
+        ipage = ipage + 2
+    else:
+        ipage = ipage + 1
     
     # 각 지도에서 20개의 매물이 합쳐져 보이는거 체크.
     for pageCnt in range(1, ipage):
-        print(f"in Area page count : {pageCnt}")
-        
         # 매물 20개가 넘는 위치들 카운트 하기 위함.
         offeringsURL = f"https://m.land.naver.com/cluster/ajax/complexList?itemId={val['lgeo']}&lgeo={val['lgeo']}&rletTpCd=APT&tradTpCd=A1:B1:B2&z={z}&lat={val['lat']}&lon={val['lon']}&btm=37.4404697&lft=127.1156627&top=37.5303033&rgt=127.1285373&cortarNo={cortarNo}&isOnlyIsale=false&sort=readRank&page={pageCnt}"
         resOfferings = getRes(offeringsURL, headers)
@@ -155,7 +152,6 @@ for val in mapArray:
                     
                     # 매매, 전세 데이터 저장 list
                     
-                    
                     # APT 단지 매물 검색
                     for apts in aptArray:
                         #print(f"{apts['atclNm']}, {apts['tradTpNm']}, {apts['prcInfo']}")
@@ -187,23 +183,20 @@ for val in mapArray:
                                 continue
                             else:
                                 myLeaseList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), priceInfo, f"{floorInfo}"))     
-                            
-                        
-                        
-                        """
-                        # real estate info.
-                            class RealEstateInfo(NamedTuple):
-                                name:str
-                                spc1:float
-                                spc2:float
-                                priceInfo:str
-                                floorInfo:str
-                        """
                         
                 myDealList.sort()
                 for val in range(0, len(myDealList)):
-                    print(f"{myDealList[val]}")
-
-
+                    criteria = 0.0 # float
                     
+                    #print(f"{myDealList[val]}")
+                    if val is 0:    # 단지에서 가장 낮은 공급면적 기준으로 가장 저렴한 가격.
+                        criteria = float(myDealList[val].spc1)
+                        continue
+                    
+                    # 가장 저렴한 가격보다 높은 가격인 경우.
+                    if float(myDealList[val].spc1) == criteria:
+                        myDealList.pop(val)
+                        continue
+                    
+                    print(f"{myDealList[val]}")
                         
