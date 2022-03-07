@@ -15,6 +15,7 @@ import seaborn as sns
 import timeit
 import collections
 from dataclasses import dataclass
+from typing import NamedTuple
 
 #
 #   startStr부터 ~ endStr 사이의 문자열 반환
@@ -31,7 +32,7 @@ def getStrBetweenAnB(fullStr, startStr, endStr):
     return fullStr[startIdx:endIdx]
 
 #
-#    Get Res
+#    Get Response
 #
 def getRes(url, headers):
     res = requests.get(url, headers = headers)
@@ -41,17 +42,44 @@ def getRes(url, headers):
         
     return res
 
-# real estate info.
+#
+#    해당 층수 리턴.  
+#
+def getFloorInfo(floorInfo):
+    result = floorInfo.split('/')
+    return str(result[0])
+
+#
+#    string으로 저장된 가격을 int 값으로 변경하여 반환.
+#
+def getPriceInfo(price):
+    list = price.split('억 ')
+    result = 0
+    
+    if len(list) is 2: # ex) 3억 6,000
+        
+        result = int(list[0]) * 10000 + int(list[1].replace(',', ''))
+    else: # ex) 3억
+        result = int(list[0].replace('억','0000')) * 10000
+        
+    return int(result)
+
+
+#
+#    real estate struct
+#
 class RealEstateInfo(NamedTuple):
     name:str
     spc1:float
     spc2:float
-    priceInfo:str
+    priceInfo:int
+    floorInfo:str
 
+        
 #
 #       Main
 #
-keyword = "성남시 야탑동"
+keyword = "원주시 무실동"
 
 url = "https://m.land.naver.com/search/result/" + keyword
 headers = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"}
@@ -110,6 +138,8 @@ for val in mapArray:
                 
                 # apt 매물 갯수가 20개 이하인 경우.
                 
+                myDealList = []
+                myLeaseList = []
                 
                 # 매매, 전세 페이지 처리. # 20개 이상일 때 page 증가됨.
                 for aptCnt in range(1, aptPage):
@@ -121,28 +151,47 @@ for val in mapArray:
                     aptArray = aptJsonObject['result']['list']
                     
                     # 매매, 전세 데이터 저장 list
-                    myDealList = []
-                    myLeaseList = []
+                    
                     
                     # APT 단지 매물 검색
                     for apts in aptArray:
                         #print(f"{apts['atclNm']}, {apts['tradTpNm']}, {apts['prcInfo']}")
                         
-                        
+                        floorInfo = getFloorInfo(apts['flrInfo'])
+                        priceInfo = getPriceInfo(apts['prcInfo'])
                         
                         # 층수 "flrInfo":"11/15" "저/15", "고/15"
                         # 공급/전용 "spc1":"103.12","spc2":"84.7"
                         if apts['tradTpNm'] == "매매":
-                            myDealList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), f"{apts['prcInfo']}"))
+                            if floorInfo == "저":
+                                continue
+                            elif  floorInfo == '중' or floorInfo == '고':
+                                myDealList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), priceInfo, f"{floorInfo}"))                                        
+                                continue
+                            elif int(floorInfo) < 5:
+                                continue
+                            else:
+                                myDealList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), priceInfo, f"{floorInfo}"))     
+                            
+                            
                         elif apts['tradTpNm'] == "전세":
-                            myLeaseList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), f"{apts['prcInfo']}"))
+                            if floorInfo == "저":
+                                continue
+                            elif  floorInfo == '중' or floorInfo == '고':
+                                myDealList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), priceInfo, f"{apts['flrInfo']}"))                                        
+                                continue
+                            elif int(floorInfo) < 5:
+                                continue
+                            else:
+                                myDealList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), priceInfo, f"{apts['flrInfo']}"))     
+                            
                         
                         #
                         # 구조체로 단지이름, 전용면적, 매매or전세 이 세가지로 key를 가지며 구분,
                         # 엑셀 시트에 추가할 때 저 3가지면 고유값을 가질 수 있음.
                         # 해당 list에서 저층 제외로 sort. 매매가는 가장 낮은 가격 - 전세는 중간값으로
                         #
-                        #
+                        
                         """
                         # real estate info.
                             class RealEstateInfo(NamedTuple):
@@ -150,13 +199,15 @@ for val in mapArray:
                                 spc1:float
                                 spc2:float
                                 priceInfo:str
+                                floorInfo:str
                         """
                         
-                        print(myDealList)
+                myDealList.sort()
+                for val in range(0, len(myDealList)):
+                    print(f"{myDealList[val]}")
                         
                         
                         
-                        
-                        
+
                     
                         
