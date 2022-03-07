@@ -78,12 +78,17 @@ class RealEstateInfo(NamedTuple):
 #
 #       Main
 #
-keyword = "송파구 문정동"
+keyword = "송파구 잠실동"
 
 url = "https://m.land.naver.com/search/result/" + keyword
-headers = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"}
+headers = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36"}
+
+
+prt = requests.get(url).text
+print(prt)
 
 resArea = getRes(url, headers)
+
 
 strResult = getStrBetweenAnB(resArea.text, "filter: {", "},")
 
@@ -143,7 +148,7 @@ for val in mapArray:
                 
                 # 매매, 전세 페이지 처리. # 20개 이상일 때 page 증가됨.
                 for aptCnt in range(1, aptPage):
-                    print(f"APT page count : {aptCnt}")
+                    #print(f"APT page count : {aptCnt}")
                     aptUrl = f'https://m.land.naver.com/complex/getComplexArticleList?hscpNo={v["hscpNo"]}&cortarNo=1171010800&tradTpCd=A1:B1&order=point_&showR0=N&page={aptCnt}'
                     resApt = getRes(aptUrl, headers)
                     
@@ -195,8 +200,7 @@ for val in mapArray:
                     
                     # 가장 저렴한 가격보다 높은 가격인 경우.
                     if float(myDealList[val].spc1) == criteria:
-                        myDealList.pop(val)
-                        continue
-                    
-                    print(f"{myDealList[val]}")
+                        print(myDealList.pop(val))
+                    else:
+                        print(f"{myDealList[val]}")
                         
