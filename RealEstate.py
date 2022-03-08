@@ -57,12 +57,55 @@ def getPriceInfo(price):
     result = 0
     
     if len(list) is 2: # ex) 3억 6,000
-        
         result = int(list[0]) * 10000 + int(list[1].replace(',', ''))
     else: # ex) 3억
         result = int(list[0].replace('억','')) * 10000
         
     return int(result)
+
+#
+#    공급면적을 기준으로 각 면적당 최소값만 리턴.
+#
+def getMinVal(aptList):
+    
+    aptList.sort()
+    rmEleList = [] # 삭제할 element를 임시 저장하는 리스트.
+                
+    criteria = 0.0 # 공급면적 기준 값을 저장하는 변수. float.
+                
+    for val in range(0, len(aptList)):
+        if val == 0:    # 단지에서 공급면적 기준으로 가장 저렴한 가격.
+            criteria = float(aptList[val].spc1)
+            continue
+
+        if float(aptList[val].spc1) == float(criteria):
+            rmEleList.append(aptList[val])
+        else:
+            criteria = float(aptList[val].spc1)
+                            
+    # 최저값 제외하고 지우는 과정.
+    for rm in rmEleList:
+        aptList.remove(rm)
+        
+    return aptList
+
+#
+#    저층과 5층 이하 매물을 없애주고 반환하는 기능
+#
+def removeLowFloor(apt, aptList):
+    
+    # 층 정보, 가격 정보
+    floorInfo = getFloorInfo(apt['flrInfo'])
+    priceInfo = getPriceInfo(apt['prcInfo'])
+    
+    if floorInfo == "저":
+        return
+    elif  floorInfo == '중' or floorInfo == '고':
+        aptList.append(RealEstateInfo(f"{apts['atclNm']}", float(apt['spc1']), float(apt['spc2']), priceInfo, f"{floorInfo}"))                                        
+    elif int(floorInfo) < 5:
+        return
+    else:
+        aptList.append(RealEstateInfo(f"{apts['atclNm']}", float(apt['spc1']), float(apt['spc2']), priceInfo, f"{floorInfo}"))         
 
 #
 #    real estate struct
@@ -81,14 +124,11 @@ class RealEstateInfo(NamedTuple):
 keyword = "송파구 잠실동"
 
 url = "https://m.land.naver.com/search/result/" + keyword
-headers = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36"}
+headers = {'User-Agent': "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; .NET4.0C; .NET4.0E; .NET CLR 2.0.50727; .NET CLR 1.1.4322; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; Browzar)"}
 
-
-prt = requests.get(url).text
-print(prt)
-
+#prt = requests.get(url).text
+#print(prt)
 resArea = getRes(url, headers)
-
 
 strResult = getStrBetweenAnB(resArea.text, "filter: {", "},")
 
@@ -118,10 +158,10 @@ for val in mapArray:
     # 20개 이하일땐 page 1부터 시작
     ipage = int(int(val['count'])/20) # 20개씩으로 끊어짐.
     if int(int(val['count'])/20) is 0:
-        ipage = ipage + 2
+        ipage = ipage + 2    
     else:
         ipage = ipage + 1
-    
+        
     # 각 지도에서 20개의 매물이 합쳐져 보이는거 체크.
     for pageCnt in range(1, ipage):
         # 매물 20개가 넘는 위치들 카운트 하기 위함.
@@ -137,70 +177,33 @@ for val in mapArray:
                 print(f"{v['hscpNm']}, {v['dealCnt']}, {v['leaseCnt']}")
 
                 # 아파트 매물 url
-                num = int(v['dealCnt']) + int(v['leaseCnt'])
-                
+                num = int(v['dealCnt']) + int(v['leaseCnt'])                
                 aptPage =  int(num / 20) + 2
-                
-                # apt 매물 갯수가 20개 이하인 경우.
-                
+
                 myDealList = []
                 myLeaseList = []
                 
                 # 매매, 전세 페이지 처리. # 20개 이상일 때 page 증가됨.
                 for aptCnt in range(1, aptPage):
-                    #print(f"APT page count : {aptCnt}")
                     aptUrl = f'https://m.land.naver.com/complex/getComplexArticleList?hscpNo={v["hscpNo"]}&cortarNo=1171010800&tradTpCd=A1:B1&order=point_&showR0=N&page={aptCnt}'
                     resApt = getRes(aptUrl, headers)
                     
                     aptJsonObject = json.loads(resApt.text)
                     aptArray = aptJsonObject['result']['list']
                     
-                    # 매매, 전세 데이터 저장 list
-                    
                     # APT 단지 매물 검색
-                    for apts in aptArray:
-                        #print(f"{apts['atclNm']}, {apts['tradTpNm']}, {apts['prcInfo']}")
-                        
-                        floorInfo = getFloorInfo(apts['flrInfo'])
-                        priceInfo = getPriceInfo(apts['prcInfo'])
-                        
-                        # 층수 "flrInfo":"11/15" "저/15", "고/15"
-                        # 공급/전용 "spc1":"103.12","spc2":"84.7"
-                        if apts['tradTpNm'] == "매매":
-                            if floorInfo == "저":
-                                continue
-                            elif  floorInfo == '중' or floorInfo == '고':
-                                myDealList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), priceInfo, f"{floorInfo}"))                                        
-                                continue
-                            elif int(floorInfo) < 5:
-                                continue
-                            else:
-                                myDealList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), priceInfo, f"{floorInfo}"))     
-                            
-                            
-                        elif apts['tradTpNm'] == "전세":
-                            if floorInfo == "저":
-                                continue
-                            elif  floorInfo == '중' or floorInfo == '고':
-                                myLeaseList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), priceInfo, f"{floorInfo}"))                                        
-                                continue
-                            elif int(floorInfo) < 5:
-                                continue
-                            else:
-                                myLeaseList.append(RealEstateInfo(f"{apts['atclNm']}", float(apts['spc1']), float(apts['spc2']), priceInfo, f"{floorInfo}"))     
-                        
-                myDealList.sort()
-                for val in range(0, len(myDealList)):
-                    criteria = 0.0 # float
-                    
-                    #print(f"{myDealList[val]}")
-                    if val is 0:    # 단지에서 가장 낮은 공급면적 기준으로 가장 저렴한 가격.
-                        criteria = float(myDealList[val].spc1)
-                        continue
-                    
-                    # 가장 저렴한 가격보다 높은 가격인 경우.
-                    if float(myDealList[val].spc1) == criteria:
-                        print(myDealList.pop(val))
-                    else:
-                        print(f"{myDealList[val]}")
+                    # 층수 "flrInfo":"11/15" "저/15", "고/15"
+                    # 공급/전용 "spc1":"103.12","spc2":"84.7"
+                    # 매매와 전세 리스트 따로 저장하기.
+                    for apt in aptArray:  
+                        if apt['tradTpNm'] == "매매":
+                            removeLowFloor(apt, myDealList)
+                        elif apt['tradTpNm'] == "전세":
+                            removeLowFloor(apt, myLeaseList)
+
+                    # 매매와 전세가격중 최소값만 저장.
+                    # 엑셀 데이터에 입력해야함.
+                    myDealList = getMinVal(myDealList)
+                    myLeaseList = getMinVal(myLeaseList)
+                
                         
