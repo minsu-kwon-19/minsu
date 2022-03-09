@@ -157,22 +157,9 @@ filepath = excelFilePath #workbook 객체 생성
 
 wb = op.load_workbook(filepath, data_only = 'True') #worksheet 객체 생성
 
-ws = wb["정보입력"]
+ws = wb[f"{keyword2}"]
 
-startIdx = 0
-endIdx = 0
-strFlag = False
-
-# 해당 동 시트안 범위만 확인하기 위해 index 구하기.
-for idx in range(1, ws.max_row + 1):    # sheet range
-    if keyword2 in ws[f'A{idx}'].value and strFlag == False: # first idx
-        startIdx = idx
-        strFlag = True
-        print(f"startIdx : {startIdx}")
-    elif keyword2 in ws[f'A{idx}'].value and keyword2 not in ws[f'A{idx+1}'].value:
-        endIdx = idx
-        print(f"endIdx : {endIdx}")
-        break
+print(f"workSheet name : {ws}")
 
 # 매물 정보
 for val in mapArray:
@@ -228,27 +215,25 @@ for val in mapArray:
                         elif apt['tradTpNm'] == "전세":
                             removeLowFloor(apt, myLeaseList)
 
-                    # 매매와 전세가격중 최소값만 저장.
-                    # 엑셀 데이터에 입력해야함.
-                    myDealList = getMinVal(myDealList)
-                    myLeaseList = getMinVal(myLeaseList)
+                # 매매와 전세가격중 최소값만 저장.
+                # 엑셀 데이터에 입력해야함.
+                myDealList = getMinVal(myDealList)
+                myLeaseList = getMinVal(myLeaseList)
                         
-                    # input data.
-                    for cnt in range(startIdx, endIdx + 1):    # sheet range
-                        for dealApt in myDealList:  # APT range
-                            if ws[f'D{cnt}'].value == str(dealApt.name) and ws[f'H{cnt}'].value == float(dealApt.spc1) and ws[f'J{cnt}'].value == float(dealApt.spc2):
-                                ws[f'L{cnt}'] = str(dealApt.priceInfo)
-                                ws[f'M{cnt}'] = str(dealApt.floorInfo)
+                # input data.
+                for cnt in range(6, ws.max_row + 1):    # sheet range
+                    for dealApt in myDealList:  # APT range
+                        if ws[f'A{cnt}'].value == dealApt.name and ws[f'D{cnt}'].value == round(dealApt.spc1, 1) and ws[f'F{cnt}'].value == round(dealApt.spc2,1):
+                            ws[f'I{cnt}'] = str(dealApt.priceInfo)
+                            ws[f'J{cnt}'] = str(dealApt.floorInfo)
 
-                        for leaseApt in myLeaseList:
-                            if ws[f'D{cnt}'].value == leaseApt.name and ws[f'H{cnt}'].value == leaseApt.spc1 and ws[f'J{cnt}'].value == leaseApt.spc2:
-                                ws[f'N{cnt}'] = str(leaseApt.priceInfo)
-                                ws[f'O{cnt}'] = str(leaseApt.floorInfo)
+                    for leaseApt in myLeaseList:
+                        if ws[f'A{cnt}'].value == leaseApt.name and ws[f'D{cnt}'].value == round(leaseApt.spc1, 1) and ws[f'F{cnt}'].value == round(leaseApt.spc2, 1):
+                            ws[f'K{cnt}'] = str(leaseApt.priceInfo)
+                            ws[f'L{cnt}'] = str(leaseApt.floorInfo)
 
-                    # save
-                    print("SAVE!!")
-                    wb.save("./시세표 송파구.xlsx")
-                    time.sleep(1)
+                # save
+                wb.save("./시세표 송파구.xlsx")
 
 
                         
