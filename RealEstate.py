@@ -17,6 +17,8 @@ import collections
 from dataclasses import dataclass
 from typing import NamedTuple
 
+import openpyxl as op 
+
 #
 #   startStr부터 ~ endStr 사이의 문자열 반환
 #
@@ -56,7 +58,7 @@ def getPriceInfo(price):
     list = price.split('억 ')
     result = 0
     
-    if len(list) is 2: # ex) 3억 6,000
+    if len(list) == 2: # ex) 3억 6,000
         result = int(list[0]) * 10000 + int(list[1].replace(',', ''))
     else: # ex) 3억
         result = int(list[0].replace('억','')) * 10000
@@ -101,11 +103,11 @@ def removeLowFloor(apt, aptList):
     if floorInfo == "저":
         return
     elif  floorInfo == '중' or floorInfo == '고':
-        aptList.append(RealEstateInfo(f"{apts['atclNm']}", float(apt['spc1']), float(apt['spc2']), priceInfo, f"{floorInfo}"))                                        
+        aptList.append(RealEstateInfo(f"{apt['atclNm']}", float(apt['spc1']), float(apt['spc2']), priceInfo, f"{floorInfo}"))                                        
     elif int(floorInfo) < 5:
         return
     else:
-        aptList.append(RealEstateInfo(f"{apts['atclNm']}", float(apt['spc1']), float(apt['spc2']), priceInfo, f"{floorInfo}"))         
+        aptList.append(RealEstateInfo(f"{apt['atclNm']}", float(apt['spc1']), float(apt['spc2']), priceInfo, f"{floorInfo}"))         
 
 #
 #    real estate struct
@@ -121,9 +123,11 @@ class RealEstateInfo(NamedTuple):
 #
 #       Main
 #
-keyword = "송파구 잠실동"
+keyword1 = "송파구"
+keyword2 = "잠실동"
+excelFilePath = "./시세표 송파구.xlsm"
 
-url = "https://m.land.naver.com/search/result/" + keyword
+url = "https://m.land.naver.com/search/result/" + keyword1 + keyword2
 headers = {'User-Agent': "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; .NET4.0C; .NET4.0E; .NET CLR 2.0.50727; .NET CLR 1.1.4322; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; Browzar)"}
 
 #prt = requests.get(url).text
@@ -149,19 +153,42 @@ resMap = getRes(onMapURL, headers)
 mapJsonObject = json.loads(resMap.text)
 mapArray = mapJsonObject["data"]["COMPLEX"]
 
+filepath = excelFilePath #workbook 객체 생성
+
+wb = op.load_workbook(filepath, data_only = 'True') #worksheet 객체 생성
+
+ws = wb["정보입력"]
+
+startIdx = 0
+endIdx = 0
+strFlag = False
+
+# 해당 동 시트안 범위만 확인하기 위해 index 구하기.
+for idx in range(1, ws.max_row + 1):    # sheet range
+    if keyword2 in ws[f'A{idx}'].value and strFlag == False: # first idx
+        startIdx = idx
+        strFlag = True
+        print(f"startIdx : {startIdx}")
+    elif keyword2 in ws[f'A{idx}'].value and keyword2 not in ws[f'A{idx+1}'].value:
+        endIdx = idx
+        print(f"endIdx : {endIdx}")
+        break
+
 # 매물 정보
 for val in mapArray:
-    print(f'{val["lgeo"]}, {val["lat"]}, {val["lon"]}, {val["count"]}')
+    # print(f'{val["lgeo"]}, {val["lat"]}, {val["lon"]}, {val["count"]}')
     
     # 매물 url
     # 20개 이상일땐 page 0부터시작
     # 20개 이하일땐 page 1부터 시작
     ipage = int(int(val['count'])/20) # 20개씩으로 끊어짐.
-    if int(int(val['count'])/20) is 0:
+    if int(int(val['count'])/20) == 0:
         ipage = ipage + 2    
     else:
         ipage = ipage + 1
         
+
+
     # 각 지도에서 20개의 매물이 합쳐져 보이는거 체크.
     for pageCnt in range(1, ipage):
         # 매물 20개가 넘는 위치들 카운트 하기 위함.
@@ -205,5 +232,23 @@ for val in mapArray:
                     # 엑셀 데이터에 입력해야함.
                     myDealList = getMinVal(myDealList)
                     myLeaseList = getMinVal(myLeaseList)
-                
+                        
+                    # input data.
+                    for cnt in range(startIdx, endIdx + 1):    # sheet range
+                        for dealApt in myDealList:  # APT range
+                            if ws[f'D{cnt}'].value == str(dealApt.name) and ws[f'H{cnt}'].value == float(dealApt.spc1) and ws[f'J{cnt}'].value == float(dealApt.spc2):
+                                ws[f'L{cnt}'] = str(dealApt.priceInfo)
+                                ws[f'M{cnt}'] = str(dealApt.floorInfo)
+
+                        for leaseApt in myLeaseList:
+                            if ws[f'D{cnt}'].value == leaseApt.name and ws[f'H{cnt}'].value == leaseApt.spc1 and ws[f'J{cnt}'].value == leaseApt.spc2:
+                                ws[f'N{cnt}'] = str(leaseApt.priceInfo)
+                                ws[f'O{cnt}'] = str(leaseApt.floorInfo)
+
+                    # save
+                    print("SAVE!!")
+                    wb.save("./시세표 송파구.xlsx")
+                    time.sleep(1)
+
+
                         
