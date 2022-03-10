@@ -159,9 +159,7 @@ for dong in dongArray:
 
     # 지도에서 단지들 url
     onMapURL = f"https://m.land.naver.com/cluster/clusterList?cortarNo={cortarNo}&rletTpCd={searchType}&tradTpCd=A1%3AB1%3AB2&z={z}&lat={lat}&lon={lon}&btm=37.4756089&lft=127.099033&addon=COMPLEX&bAddon=COMPLEX&isOnlyIsale=false"
-
     resMap = getRes(onMapURL, headers)
-
     mapJsonObject = json.loads(resMap.text)
     mapArray = mapJsonObject["data"]["COMPLEX"]
 
@@ -193,7 +191,7 @@ for dong in dongArray:
 
             # 지역 전체 매물 array
             for v in offeringsArray:
-                if int(v['totHsehCnt']) > 300:
+                if int(v['totHsehCnt']) > 300:    # total Households
                     print(f"{v['hscpNm']}, {v['dealCnt']}, {v['leaseCnt']}")
 
                     # 아파트 매물 url
@@ -214,7 +212,7 @@ for dong in dongArray:
                         # APT 단지 매물 검색
                         # 층수 "flrInfo":"11/15" "저/15", "고/15"
                         # 공급/전용 "spc1":"103.12","spc2":"84.7"
-                        # 매매와 전세 리스트 따로 저장하기.
+                        # 매매와 전세 리스트 따로 저장하기. 
                         for apt in aptArray:  
                             if apt['tradTpNm'] == "매매":
                                 removeLowFloor(apt, myDealList)
@@ -238,7 +236,7 @@ for dong in dongArray:
                                 ws[f'K{cnt}'] = str(leaseApt.priceInfo)
                                 ws[f'L{cnt}'] = str(leaseApt.floorInfo)
 
-                    # save
+                    # save APT info
                     wb.save(f"{excelFilePath}")
 
 
